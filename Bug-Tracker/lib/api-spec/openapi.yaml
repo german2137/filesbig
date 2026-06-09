@@ -1,0 +1,265 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bots
+    description: Bot session management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /bots/sessions:
+    get:
+      operationId: listSessions
+      tags: [bots]
+      summary: List all bot sessions
+      responses:
+        "200":
+          description: List of bot sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BotSession"
+    post:
+      operationId: launchSession
+      tags: [bots]
+      summary: Launch a new bot session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LaunchInput"
+      responses:
+        "201":
+          description: Session launched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSession"
+        "400":
+          description: Invalid input
+
+  /bots/sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [bots]
+      summary: Get a specific bot session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSession"
+        "404":
+          description: Session not found
+    post:
+      operationId: stopSession
+      tags: [bots]
+      summary: Stop a bot session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StopResult"
+        "404":
+          description: Session not found
+    delete:
+      operationId: deleteSession
+      tags: [bots]
+      summary: Delete a bot session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StopResult"
+        "404":
+          description: Session not found
+    patch:
+      operationId: updateSession
+      tags: [bots]
+      summary: Update a bot session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host:
+                  type: string
+                port:
+                  type: integer
+                botCount:
+                  type: integer
+                delayMs:
+                  type: integer
+      responses:
+        "200":
+          description: Session updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSession"
+        "404":
+          description: Session not found
+
+  /bots/stats:
+    get:
+      operationId: getBotStats
+      tags: [bots]
+      summary: Get global bot statistics
+      responses:
+        "200":
+          description: Bot statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    BotSessionStatus:
+      type: string
+      enum: [spawning, running, stopped, failed]
+
+    BotSession:
+      type: object
+      required:
+        - id
+        - host
+        - port
+        - botCount
+        - delayMs
+        - status
+        - connectedCount
+        - failedCount
+        - errorMessage
+        - createdAt
+      properties:
+        id:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+        botCount:
+          type: integer
+        delayMs:
+          type: integer
+        status:
+          $ref: "#/components/schemas/BotSessionStatus"
+        connectedCount:
+          type: integer
+        failedCount:
+          type: integer
+        errorMessage:
+          type: string
+        createdAt:
+          type: string
+
+    LaunchInput:
+      type: object
+      required:
+        - host
+        - botCount
+        - delayMs
+      properties:
+        host:
+          type: string
+          minLength: 1
+        port:
+          type: ["integer", "null"]
+        botCount:
+          type: integer
+          minimum: 1
+          maximum: 500
+        delayMs:
+          type: integer
+          minimum: 0
+
+    StopResult:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    BotStats:
+      type: object
+      required:
+        - totalSessions
+        - activeSessions
+        - totalBotsLaunched
+        - totalBotsConnected
+      properties:
+        totalSessions:
+          type: integer
+        activeSessions:
+          type: integer
+        totalBotsLaunched:
+          type: integer
+        totalBotsConnected:
+          type: integer
